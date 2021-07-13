@@ -11,6 +11,7 @@ using Microsoft.Extensions.Hosting;
 
 namespace merge_test
 {
+    [ExcludeFromCodeCoverage]
     public class Startup
     {
         public Startup(IConfiguration configuration)
@@ -18,39 +19,44 @@ namespace merge_test
             Configuration = configuration;
         }
 
-        public IConfiguration Configuration { get; }
+        public static IConfiguration Configuration { get; private set; }
 
-        // This method gets called by the runtime. Use this method to add services to the container.
+        // This method gets called by the runtime. Use this method to add services to the container
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddRazorPages();
+            services.AddResponseCompression();
         }
 
-        // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
+        // This method gets called by the runtime. Use this method to configure the HTTP request pipeline
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
             }
-            else
-            {
-                app.UseExceptionHandler("/Error");
-                // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
-                app.UseHsts();
-            }
 
+            app.UseForwardedHeaders();
             app.UseHttpsRedirection();
-            app.UseStaticFiles();
 
-            app.UseRouting();
+            app.UseResponseCompression();
 
-            app.UseAuthorization();
-
-            app.UseEndpoints(endpoints =>
+            app.Use(async (context, next) =>
             {
-                endpoints.MapRazorPages();
+                var url = context.Request.Path.Value;
+
+                // Rewrite to index
+                if (url == "/")
+                {
+                    context.Request.Path = "/index.html";
+                }
+
+                await next();
             });
+            app.UseStaticFiles(new StaticFileOptions {
+                FileProvider = new S3FileProvider(new AmazonS3Client(Amazon.RegionEndpoint.USWest2),
+                "s3-test-prefix")
+            });
+
         }
     }
 }
