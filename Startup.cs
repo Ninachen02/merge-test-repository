@@ -19,6 +19,11 @@ namespace merge_test
             Configuration = configuration;
         }
 
+
+
+        //add comments on test_branch to test merge
+
+
         public static IConfiguration Configuration { get; private set; }
 
         // This method gets called by the runtime. Use this method to add services to the container
